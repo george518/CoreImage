@@ -7,6 +7,7 @@ import sys
 import copy
 import cv2
 import math
+import datetime
 
 #----------------------------------------------------------------------  
 # CoreImage: 核心图片类，获取核心图片
@@ -25,6 +26,7 @@ class CoreImage(object):
 		self.isBgPure   = cropInfo.get('isBgPure',0)#是否纯色背景，0-不是，1-是
 		self.newWidth   = cropInfo.get('newWidth',380)
 		self.newHeight  = cropInfo.get('newHeight',380)
+		self.line       = cropInfo.get('line',1) #每隔几行扫描一次，建议1，4，8
 
 
 	#获取图片边缘
@@ -43,6 +45,8 @@ class CoreImage(object):
 
 	#获取纯色背景核心图片
 	def getPureBgCoreImg(self):
+
+		begin = datetime.datetime.now()
 		edgeImg = self.getImgEdge()
 		img_width = edgeImg[1].shape[1]
 		img_height = edgeImg[1].shape[0]
@@ -51,40 +55,49 @@ class CoreImage(object):
 		x1 = img_width-1
 		y1 = img_height-1
 
+		#左上角X轴
 		i = j = 0
-		for i in range(0,img_width):
+		for i in range(0,img_width,self.line):
 			if(x0!=0):
 				break;
 			for j in range(0,img_height):
 				if(edgeImg[0][j,i]!=0):
-					x0=i
+					x0=i-self.line
 					break
+		#左上角Y轴
 		i = j = 0
-		for i in range(0,img_height):
+		for i in range(0,img_height,self.line):
 			if(y0!=0):
 				break;
 			for j in range(0,img_width):
 				if(edgeImg[0][i,j]!=0):
-					y0=i
+					y0=i-self.line
 					break
+		#右下角X轴
 		i = j = 0
-		for i in range(0,img_width)[::-1]:
+		for i in range(0,img_width,self.line)[::-1]:
 			if(x1!=img_width-1):
 				break;
 			for j in range(0,img_height)[::-1]:
 				if(edgeImg[0][j,i]!=0):
-					x1=i
+					x1=i+self.line
 					break
+		#右下角Y轴
 		i = j = 0
-		for i in range(0,img_height)[::-1]:
+		for i in range(0,img_height,self.line)[::-1]:
 			if(y1!=img_height-1):
 				break;
 			for j in range(0,img_width)[::-1]:
 				if(edgeImg[0][i,j]!=0):
-					y1=i
+					y1=i+self.line
 					break
+
 		crop_img = edgeImg[1][y0:y1,x0:x1]
-		cv2.imwrite(self.newImgPath+'new_image.jpg',crop_img)
+		# image_name = 'new_image'+str(self.line)+'.jpg'
+		image_name = 'new_image.jpg'
+		cv2.imwrite(self.newImgPath+image_name,crop_img)
+		end = datetime.datetime.now()
+		print(end-begin);
 		return crop_img
 
 	#获取默认的核心图片 含人脸识别
@@ -153,7 +166,6 @@ class CoreImage(object):
 		croppedName = self.newImgPath+"new_face.jpg"
 		cv2.imwrite(croppedName, croppedData)
 
-
 if __name__ == '__main__':
 	imgPath    = './originalImage/'
 	newImgPath = './newImage/'
@@ -170,12 +182,10 @@ if __name__ == '__main__':
 	#背景纯色图
 	imgName    = 'image.jpg'
 	imgInfo = {'imgName':imgName,'imgPath':imgPath}
-	newImgInfo = {'isBgPure':1};
+	newImgInfo = {'isBgPure':1,'line':8};
 
 	coeImg = CoreImage(imgInfo,newImgInfo)
 	coeImg.getCoreImg();
-	# imageEdge(imgpath)
-
 
 
 		
